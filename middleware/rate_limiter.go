@@ -8,9 +8,9 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
-	"github.com/redis/go-redis/v9"
 	"github.com/rs/zerolog/log"
 	"github.com/vnurhaqiqi/rate-limiter-example/config"
+	"github.com/vnurhaqiqi/rate-limiter-example/infra"
 )
 
 func getKey(IP string, bucketTime int) string {
@@ -20,18 +20,18 @@ func getKey(IP string, bucketTime int) string {
 	return IP
 }
 
-func CustomRateLimiter(cfg config.Config, redisClient redis.Client) gin.HandlerFunc {
+func CustomRateLimiter(cfg config.Config, cache infra.Cache) gin.HandlerFunc {
 	return func(ctx *gin.Context) {
 		bucketTime, _ := strconv.Atoi(cfg.Bucket.Time)
 
 		IPAddress := ctx.RemoteIP()
 		IPAddress = getKey(IPAddress, bucketTime)
 
-		val, err := redisClient.Get(ctx, IPAddress).Result()
+		val, err := cache.GetIP(IPAddress)
 		if err != nil {
 			expiry, _ := strconv.Atoi(cfg.Bucket.Expiry)
-
-			err = redisClient.Set(ctx, IPAddress, 0, time.Duration(expiry)*time.Second).Err()
+			
+			err = cache.SetIP(IPAddress, infra.DurationSecond, expiry, 0)
 			if err != nil {
 				log.Error().Err(err)
 				ctx.String(http.StatusBadRequest, err.Error())
