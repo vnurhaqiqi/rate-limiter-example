@@ -20,7 +20,7 @@ type Cache struct {
 	Ctx   context.Context
 }
 
-func RedisClient(cfg config.Config) *Cache {
+func ProvideClient(cfg config.Config) *Cache {
 	ctx := context.Background()
 	redisClient := redis.NewClient(&redis.Options{
 		Addr:     fmt.Sprintf("%s:%s", cfg.Redis.Host, cfg.Redis.Port),
@@ -34,7 +34,7 @@ func RedisClient(cfg config.Config) *Cache {
 	}
 }
 
-func (c *Cache) SetIP(key string, durationType string, expiry int, val interface{}) error {
+func (c *Cache) SetKey(key string, durationType string, expiry int, val interface{}) error {
 	duration := getDurationType(durationType)
 
 	err := c.Redis.Set(c.Ctx, key, val, time.Duration(expiry)*duration).Err()
@@ -44,7 +44,7 @@ func (c *Cache) SetIP(key string, durationType string, expiry int, val interface
 	return nil
 }
 
-func (c *Cache) GetIP(IP string) (string, error) {
+func (c *Cache) GetKey(IP string) (string, error) {
 	val, err := c.Redis.Get(c.Ctx, IP).Result()
 	if err != nil {
 		return val, err

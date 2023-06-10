@@ -27,11 +27,11 @@ func CustomRateLimiter(cfg config.Config, cache infra.Cache) gin.HandlerFunc {
 		IPAddress := ctx.RemoteIP()
 		IPAddress = getKey(IPAddress, bucketTime)
 
-		val, err := cache.GetIP(IPAddress)
+		val, err := cache.GetKey(IPAddress)
 		if err != nil {
 			expiry, _ := strconv.Atoi(cfg.Bucket.Expiry)
-			
-			err = cache.SetIP(IPAddress, infra.DurationSecond, expiry, 0)
+
+			err = cache.SetKey(IPAddress, infra.DurationSecond, expiry, 0)
 			if err != nil {
 				log.Error().Err(err)
 				ctx.String(http.StatusBadRequest, err.Error())
