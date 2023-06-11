@@ -44,13 +44,29 @@ func (c *Cache) SetKey(key string, durationType string, expiry int, val interfac
 	return nil
 }
 
-func (c *Cache) GetKey(IP string) (string, error) {
-	val, err := c.Redis.Get(c.Ctx, IP).Result()
+func (c *Cache) GetKey(key string) (string, error) {
+	val, err := c.Redis.Get(c.Ctx, key).Result()
 	if err != nil {
 		return val, err
 	}
 
 	return val, nil
+}
+
+func (c *Cache) SetIncrement(key string) error {
+	err := c.Redis.Incr(c.Ctx, key).Err()
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (c *Cache) GetIncrement(key string) (counter int, err error) {
+	counter, err = c.Redis.Get(c.Ctx, key).Int()
+	if err != nil {
+		return
+	}
+	return
 }
 
 // getDurationType this function to resolve duration type for expiry

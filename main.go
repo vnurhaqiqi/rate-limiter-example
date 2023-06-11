@@ -26,8 +26,8 @@ func main() {
 	customeRateLimiter := middleware.CustomRateLimiter(cfg, *cache)
 
 	r.GET("/custom-rate-limiter", customeRateLimiter, func(ctx *gin.Context) {
-		ctx.JSON(http.StatusOK, gin.H{
-			"message": "ping",
-		})
+		ctx.String(http.StatusOK, "ping")
 	})
+
+	r.Run()
 }

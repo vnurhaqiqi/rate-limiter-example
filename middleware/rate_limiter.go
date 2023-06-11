@@ -21,31 +21,50 @@ func getKey(IP string, bucketTime int) string {
 }
 
 func CustomRateLimiter(cfg config.Config, cache infra.Cache) gin.HandlerFunc {
-	return func(ctx *gin.Context) {
-		bucketTime, _ := strconv.Atoi(cfg.Bucket.Time)
+	bucketTime, _ := strconv.Atoi(cfg.Bucket.Time)
+	bucketTreshold, _ := strconv.Atoi(cfg.Bucket.Treshold)
+	expiry, _ := strconv.Atoi(cfg.Bucket.Expiry)
 
-		IPAddress := ctx.RemoteIP()
+	return func(ctx *gin.Context) {
+		IPAddress := ctx.Request.RemoteAddr
 		IPAddress = getKey(IPAddress, bucketTime)
 
-		val, err := cache.GetKey(IPAddress)
+		// Get IP Address number of count
+		counter, err := cache.GetIncrement(IPAddress)
 		if err != nil {
-			expiry, _ := strconv.Atoi(cfg.Bucket.Expiry)
 
+			// Set IP Address to store in cache
 			err = cache.SetKey(IPAddress, infra.DurationSecond, expiry, 0)
 			if err != nil {
-				log.Error().Err(err)
-				ctx.String(http.StatusBadRequest, err.Error())
+				handleError(ctx, err, http.StatusBadRequest)
+				return
+			}
+
+			// Set increment IP Address as counter for request
+			err = cache.SetIncrement(IPAddress)
+			if err != nil {
+				handleError(ctx, err, http.StatusBadRequest)
 				return
 			}
 		} else {
-			if val > cfg.Bucket.Treshold {
+			if counter > bucketTreshold {
 				err := errors.New("max request reached")
-				log.Warn().Err(err)
-				ctx.String(http.StatusTooManyRequests, err.Error())
-
+				handleError(ctx, err, http.StatusTooManyRequests)
+				return
+			}
+			err = cache.SetIncrement(IPAddress)
+			if err != nil {
+				handleError(ctx, err, http.StatusBadRequest)
 				return
 			}
 		}
 		ctx.Next()
 	}
+}
+
+// error handler
+func handleError(ctx *gin.Context, err error, code int) {
+	log.Error().Err(err)
+	ctx.String(code, err.Error())
+	ctx.Abort()
 }
